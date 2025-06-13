@@ -9,13 +9,11 @@ export interface Env {
 }
 
 // Define our MCP agent with tools
-export class MyMCP extends McpAgent {
+export class MyMCP extends McpAgent<Env, unknown, Record<string, unknown>> {
 	server = new McpServer({
 		name: "Authless Calculator",
 		version: "1.0.0",
 	});
-
-	static currentEnv?: Env;
 
 	async init() {
 		// Simple addition tool
@@ -333,7 +331,8 @@ export class MyMCP extends McpAgent {
 			async ({ text, title }) => {
 				try {
 					// Get HubSpot PAT from environment variables
-					const hubspotPat = MyMCP.currentEnv?.HUBSPOT_PAT;
+					const env = this.env as Env;
+					const hubspotPat = env.HUBSPOT_PAT;
 					if (!hubspotPat) {
 						return {
 							content: [{
@@ -397,16 +396,16 @@ export class MyMCP extends McpAgent {
 			{},
 			async () => {
 				try {
-					const env = MyMCP.currentEnv;
-					const hubspotPat = env?.HUBSPOT_PAT;
+					const env = this.env as Env;
+					const hubspotPat = env.HUBSPOT_PAT;
 
-					const envKeys = env ? Object.keys(env) : [];
+					const envKeys = Object.keys(env);
 
 					return {
 						content: [{
 							type: "text",
 							text: `🔍 **Environment Debug Info:**\n` +
-								  `- Environment available: ${env ? '✅ Yes' : '❌ No'}\n` +
+								  `- Environment available: ✅ Yes\n` +
 								  `- HUBSPOT_PAT present: ${hubspotPat ? '✅ Yes' : '❌ No'}\n` +
 								  `- HUBSPOT_PAT value: ${hubspotPat ? '[HIDDEN - Present]' : '[NOT SET]'}\n` +
 								  `- Available env keys: ${envKeys.length > 0 ? envKeys.join(', ') : 'None'}\n` +
@@ -462,9 +461,6 @@ export class MyMCP extends McpAgent {
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
-		// Set the current environment for the MCP class to access
-		MyMCP.currentEnv = env;
-
 		const url = new URL(request.url);
 
 		if (url.pathname === "/sse" || url.pathname === "/sse/message") {
