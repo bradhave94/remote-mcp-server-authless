@@ -346,8 +346,6 @@ export class MyMCP extends McpAgent {
 					const rowData = {
 						values: {
 							content: text,
-							...(title && { title: title }),
-							created_date: new Date().toISOString(),
 						}
 					};
 
