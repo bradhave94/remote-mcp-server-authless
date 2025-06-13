@@ -319,7 +319,7 @@ export class MyMCP extends McpAgent {
 			}
 		);
 
-				// Add text to HubSpot HubDB table
+		// Add text to HubSpot HubDB table
 		this.server.tool(
 			"add_to_hubdb",
 			{
@@ -383,6 +383,39 @@ export class MyMCP extends McpAgent {
 						content: [{
 							type: "text",
 							text: `Error adding to HubDB table: ${error instanceof Error ? error.message : 'Unknown error'}`
+						}],
+					};
+				}
+			}
+		);
+
+		// Debug tool to check environment variables
+		this.server.tool(
+			"debug_env",
+			{},
+			async () => {
+				try {
+					const env = MyMCP.currentEnv;
+					const hubspotPat = (env as any)?.HUBSPOT_PAT;
+
+					const envKeys = env ? Object.keys(env) : [];
+
+					return {
+						content: [{
+							type: "text",
+							text: `🔍 **Environment Debug Info:**\n` +
+								  `- Environment available: ${env ? '✅ Yes' : '❌ No'}\n` +
+								  `- HUBSPOT_PAT present: ${hubspotPat ? '✅ Yes' : '❌ No'}\n` +
+								  `- HUBSPOT_PAT value: ${hubspotPat ? '[HIDDEN - Present]' : '[NOT SET]'}\n` +
+								  `- Available env keys: ${envKeys.length > 0 ? envKeys.join(', ') : 'None'}\n` +
+								  `- Environment type: ${typeof env}`
+						}],
+					};
+				} catch (error) {
+					return {
+						content: [{
+							type: "text",
+							text: `Error checking environment: ${error instanceof Error ? error.message : 'Unknown error'}`
 						}],
 					};
 				}
