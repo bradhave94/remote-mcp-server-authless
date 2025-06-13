@@ -456,6 +456,61 @@ export class MyMCP extends McpAgent<Env, unknown, Record<string, unknown>> {
 				}
 			}
 		);
+
+		// Get brand data via n8n workflow
+		this.server.tool(
+			"get_brand",
+			{
+				brand: z.string().describe("The brand name to get data for")
+			},
+			async ({ brand }) => {
+				try {
+					const webhookUrl = "https://lean-labs.app.n8n.cloud/webhook-test/440927fa-cc27-43f6-a4ec-b010f9edf58e";
+
+					const response = await fetch(webhookUrl, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							brand: brand
+						}),
+					});
+
+					if (!response.ok) {
+						const errorText = await response.text();
+						return {
+							content: [{
+								type: "text",
+								text: `❌ **Failed to get brand data**\n\n` +
+									  `Status: ${response.status}\n` +
+									  `Error: ${errorText}`
+							}],
+						};
+					}
+
+					const data = await response.text();
+
+					return {
+						content: [{
+							type: "text",
+							text: `✅ **Brand data retrieved for: ${brand}**\n\n` +
+								  `📊 **Response:**\n` +
+								  `${data}`
+						}],
+					};
+				} catch (error) {
+					return {
+						content: [{
+							type: "text",
+							text: `❌ **Error getting brand data**\n\n` +
+								  `Brand: ${brand}\n` +
+								  `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+						}],
+					};
+				}
+			}
+		);
 	}
 }
 
