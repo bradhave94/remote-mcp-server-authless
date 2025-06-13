@@ -465,7 +465,7 @@ export class MyMCP extends McpAgent<Env, unknown, Record<string, unknown>> {
 			},
 			async ({ brand }) => {
 				try {
-					const webhookUrl = "https://lean-labs.app.n8n.cloud/webhook-test/440927fa-cc27-43f6-a4ec-b010f9edf58e";
+					const webhookUrl = "https://lean-labs.app.n8n.cloud/webhook/440927fa-cc27-43f6-a4ec-b010f9edf58e";
 
 					const response = await fetch(webhookUrl, {
 						method: 'POST',
