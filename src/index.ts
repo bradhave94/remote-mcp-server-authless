@@ -2,7 +2,11 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-// HubSpot PAT will be read from environment variables
+// TypeScript interface for environment variables
+export interface Env {
+	HUBSPOT_PAT: string;
+	// Add other environment variables here as needed
+}
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
@@ -329,7 +333,7 @@ export class MyMCP extends McpAgent {
 			async ({ text, title }) => {
 				try {
 					// Get HubSpot PAT from environment variables
-					const hubspotPat = (MyMCP.currentEnv as any)?.HUBSPOT_PAT;
+					const hubspotPat = MyMCP.currentEnv?.HUBSPOT_PAT;
 					if (!hubspotPat) {
 						return {
 							content: [{
@@ -394,7 +398,7 @@ export class MyMCP extends McpAgent {
 			async () => {
 				try {
 					const env = MyMCP.currentEnv;
-					const hubspotPat = (env as any)?.HUBSPOT_PAT;
+					const hubspotPat = env?.HUBSPOT_PAT;
 
 					const envKeys = env ? Object.keys(env) : [];
 
@@ -414,6 +418,40 @@ export class MyMCP extends McpAgent {
 						content: [{
 							type: "text",
 							text: `Error checking environment: ${error instanceof Error ? error.message : 'Unknown error'}`
+						}],
+					};
+				}
+			}
+		);
+
+		// Mock background task runner
+		this.server.tool(
+			"run_agent",
+			{
+				agent_name: z.string().describe("The name of the agent to run in the background")
+			},
+			async ({ agent_name }) => {
+				try {
+					// Generate a mock task ID for tracking
+					const taskId = Math.random().toString(36).substring(2, 15);
+					const timestamp = new Date().toLocaleString();
+
+					return {
+						content: [{
+							type: "text",
+							text: `🤖 **${agent_name.toUpperCase()} IS RUNNING**\n\n` +
+								  `✅ Task initiated successfully\n` +
+								  `📋 Task ID: ${taskId}\n` +
+								  `⏰ Started: ${timestamp}\n` +
+								  `📧 You will receive an email when the task is complete\n\n` +
+								  `*Agent is now processing in the background...*`
+						}],
+					};
+				} catch (error) {
+					return {
+						content: [{
+							type: "text",
+							text: `❌ Failed to start agent: ${error instanceof Error ? error.message : 'Unknown error'}`
 						}],
 					};
 				}
@@ -439,4 +477,4 @@ export default {
 
 		return new Response("Not found", { status: 404 });
 	},
-};
+} satisfies ExportedHandler<Env>;
