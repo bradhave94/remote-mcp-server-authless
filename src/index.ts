@@ -2,12 +2,16 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
+// HubSpot PAT will be read from environment variables
+
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
 	server = new McpServer({
 		name: "Authless Calculator",
 		version: "1.0.0",
 	});
+
+	static currentEnv?: Env;
 
 	async init() {
 		// Simple addition tool
@@ -314,11 +318,84 @@ export class MyMCP extends McpAgent {
 				}
 			}
 		);
+
+				// Add text to HubSpot HubDB table
+		this.server.tool(
+			"add_to_hubdb",
+			{
+				text: z.string().describe("The text content to add to the HubDB table"),
+				title: z.string().optional().describe("Optional title for the entry")
+			},
+			async ({ text, title }) => {
+				try {
+					// Get HubSpot PAT from environment variables
+					const hubspotPat = (MyMCP.currentEnv as any)?.HUBSPOT_PAT;
+					if (!hubspotPat) {
+						return {
+							content: [{
+								type: "text",
+								text: "Error: HUBSPOT_PAT environment variable is not set. Please configure your HubSpot Personal Access Token in the environment variables."
+							}],
+						};
+					}
+
+					const tableId = "121470811";
+					const apiUrl = `https://api.hubapi.com/cms/v3/hubdb/tables/${tableId}/rows`;
+
+					// Prepare the row data - adjust field names based on your table structure
+					const rowData = {
+						values: {
+							content: text,
+							...(title && { title: title }),
+							created_date: new Date().toISOString(),
+						}
+					};
+
+					const response = await fetch(apiUrl, {
+						method: 'POST',
+						headers: {
+							'Authorization': `Bearer ${hubspotPat}`,
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(rowData),
+					});
+
+					if (!response.ok) {
+						const errorData = await response.text();
+						return {
+							content: [{
+								type: "text",
+								text: `Error adding to HubDB table: ${response.status} - ${errorData}`
+							}],
+						};
+					}
+
+					const data = await response.json();
+
+					return {
+						content: [{
+							type: "text",
+							text: `✅ Successfully added to HubDB table!\n**Row ID:** ${(data as any).id}\n**Content:** ${text}${title ? `\n**Title:** ${title}` : ''}\n**Created:** ${new Date().toLocaleString()}`
+						}],
+					};
+				} catch (error) {
+					return {
+						content: [{
+							type: "text",
+							text: `Error adding to HubDB table: ${error instanceof Error ? error.message : 'Unknown error'}`
+						}],
+					};
+				}
+			}
+		);
 	}
 }
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
+		// Set the current environment for the MCP class to access
+		MyMCP.currentEnv = env;
+
 		const url = new URL(request.url);
 
 		if (url.pathname === "/sse" || url.pathname === "/sse/message") {
